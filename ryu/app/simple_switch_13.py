@@ -33,9 +33,10 @@ class SimpleSwitch13(app_manager.RyuApp):
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
-        datapath = ev.msg.datapath
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
+        //一开始Switch连上Controller时的初始设定Function
+        datapath = ev.msg.datapath  //接受OpenFlow交换机实例
+        ofproto = datapath.ofproto  //OpenFLow交换机使用的OF协议版本
+        parser = datapath.ofproto_parser //处理OF协议的parser
 
         # install table-miss flow entry
         #
@@ -44,15 +45,22 @@ class SimpleSwitch13(app_manager.RyuApp):
         # 128, OVS will send Packet-In with invalid buffer_id and
         # truncated packet data. In that case, we cannot output packets
         # correctly.  The bug has been fixed in OVS v2.1.0.
+        //以下片段用于设定Table-Miss FlowEntry
+        //首先新增一个空的match，也就是能够match任何封包的match rule
         match = parser.OFPMatch()
+        //指定这一条Table-Miss FlowEntry的对应行为
+        //把所有不知道如何处理的封包都送到Controller
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
+        //把Table-Miss FlowEntry设定至Switch，并指定优先权为0（最低）
         self.add_flow(datapath, 0, match, actions)
 
     def add_flow(self, datapath, priority, match, actions, buffer_id=None):
+        //取得与Switch 使用的OF 版本， 对应的OF协议及parser
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
-
+        
+        
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
                                              actions)]
         if buffer_id:
